@@ -5,7 +5,7 @@ Example code for playing audio on a CH32V006 using PWM and DMA.
 Small speaker connected to PC3 though a large capacitor(in series), at least 10uF.
 
 The example PCB is designed for experimentation, therefore it also includes USB, SPI-FLASH and a can use the internal OPAMP as a second order low-pass filter. All of these features are optional.
-
+<img width="794" alt="image" src="https://github.com/user-attachments/assets/7d49fe85-f6db-43ad-9c5c-9b3c44e674cc" />
 
 ## Getting Started
 1. Get everything:
