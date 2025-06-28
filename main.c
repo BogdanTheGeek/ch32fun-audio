@@ -25,7 +25,7 @@
 #define SAMPLES     1024
 #define SAMPLE_RATE 32000
 // Make sure you use the right DMA channel number for your PWM output
-#define DMA_CHANNEL_NUM 6
+#define DMA_CHANNEL_NUM 3
 
 //------------------------------------------------------------------------------
 // Module constant defines
@@ -297,19 +297,19 @@ void DMA_ISRHandler(void)
 
 static void PWM_Init(void)
 {
-    RCC->APB2PCENR |= RCC_APB2Periph_TIM1 | RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOC;
+    RCC->APB2PCENR |= RCC_APB2Periph_TIM1 | RCC_APB2Periph_AFIO | RCC_APB2Periph_GPIOA;
     // Enable DMA
     RCC->AHBPCENR = RCC_AHBPeriph_SRAM | RCC_AHBPeriph_DMA1;
 
-    // PC3 is TIM1 CH3
-    funPinMode(PC3, GPIO_CFGLR_OUT_10Mhz_AF_PP);
+    funPinMode(PA1, GPIO_CFGLR_OUT_10Mhz_AF_PP);
+    funPinMode(PA2, GPIO_CFGLR_OUT_10Mhz_AF_PP);
 
     // NOTE: The system can only DMA out at ~2.2MSPS.  2MHz is stable.
     // The idea here is that this copies, byte-at-a-time from the memory
     // into the peripheral addres.
     DMA_CHANNEL->CNTR = SAMPLES * 2; // Number of samples to transfer
     DMA_CHANNEL->MADDR = (uint32_t)s_buffer;
-    DMA_CHANNEL->PADDR = (uint32_t)&TIM1->CH3CVR; // This is T1CH2 Compare Register.
+    DMA_CHANNEL->PADDR = (uint32_t)&TIM1->CH2CVR; // This is T1CH2 Compare Register.
     DMA_CHANNEL->CFGR =
         DMA_CFGR1_DIR |     // MEM2PERIPHERAL
         DMA_CFGR1_PL |      // High priority.
@@ -340,22 +340,24 @@ static void PWM_Init(void)
     // Reload immediately
     TIM1->SWEVGR |= TIM1_SWEVGR_TG | TIM1_SWEVGR_UG; // Update and trigger DMA
 
-    // Enable CH2 output, normal polarity
-    TIM1->CCER |= TIM1_CCER_CC3E; //| TIM1_CCER_CC3P;
+    // Enable CH2 complementatary output, normal polarity
+    TIM1->CCER |= TIM1_CCER_CC2E | TIM1_CCER_CC2NE;
 
-    // CH3 Mode is output, PWM1 (CC2S = 00, OC2M = 110)
-    TIM1->CHCTLR2 |= TIM1_CHCTLR2_OC3M_2 | TIM1_CHCTLR2_OC3M_1;
+    // CH2 Mode is output, PWM1 (CC2S = 00, OC2M = 110)
+    TIM1->CHCTLR1 |= TIM1_CHCTLR1_OC2M_2 | TIM1_CHCTLR1_OC2M_1;
 
     // Set the Capture Compare Register value to off
-    TIM1->CH3CVR = 0; // TIM1->ATRLR / 2; // Set to 50% duty cycle initially
+    TIM1->CH2CVR = 0; // TIM1->ATRLR / 2; // Set to 50% duty cycle initially
 
     // TRGO on update event
     TIM1->CTLR2 = TIM1_CTLR2_MMS_1;
 
     // Enable TIM1 outputs
     TIM1->BDTR |= TIM1_BDTR_MOE;
+    // Set deadtime
+    TIM1->BDTR = (TIM1->BDTR & ~TIM1_BDTR_DTG) | (0x4 & TIM1_BDTR_DTG);
 
-    TIM1->DMAINTENR |= TIM1_DMAINTENR_UDE | TIM1_DMAINTENR_CC3DE; // Trigger DMA on update event
+    TIM1->DMAINTENR |= TIM1_DMAINTENR_UDE | TIM1_DMAINTENR_CC2DE; // Trigger DMA on update event
 
     // Enable TIM1
     TIM1->CTLR1 |= TIM1_CTLR1_CEN;
